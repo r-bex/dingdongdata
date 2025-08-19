@@ -2,6 +2,19 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+
+# RINGING ROOM # TODO: remove
+# "place": {
+#     "place-name": {
+#         "@type": "place",
+#         "#text": "Ringing Room, UK"
+#     },
+#     "ring": {
+#         "@type": "tower"
+#     }
+# },
+
+
 class PlaceDetail(BaseModel):
     """TODO: docstring"""
     place_detail_type: Optional[str] = Field(alias="@type") # TODO: could be enum

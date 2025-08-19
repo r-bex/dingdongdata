@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -6,6 +7,9 @@ from model.place import Place
 from model.method import MethodDetails
 from model.ringers import Ringers, Ringer
 from model.enums import PerformanceType
+from utils import get_ringer_name
+
+LOGGER = logging.getLogger()
 
 class RingingEvent(BaseModel):
     """TODO: docstring"""
@@ -31,9 +35,15 @@ class Performance(BaseModel):
         """TODO: docstring"""
         if hasattr(self.ringers, "ringers"): # TODO: add a discriminator, this is hacky af
             if isinstance(self.ringers.ringers, list):
-                return [ringer.name for ringer in self.ringers.ringers]
+                return [get_ringer_name(r) for r in self.ringers.ringers]
             elif isinstance(self.ringers.ringers, Ringer):
                 return [self.ringers.ringers.name]
+            else:
+                # TODO: improve
+                raise ValueError("Unexpected format for performance ringers")
+        else:
+            # TODO: improve
+            raise ValueError("Unexpected format for performance ringers")
     
     # TODO: write tests
     def get_bell_rung_by(self, names: list[str]) -> int:

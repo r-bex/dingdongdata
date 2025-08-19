@@ -4,6 +4,8 @@ import re
 
 import streamlit as st
 
+from ddd.model.ringers import Ringer
+
 logger = logging.getLogger()
 
 BASE_URL = "https://bb.ringingworld.co.uk/export.php?pagesize={}&ringer={}"
@@ -11,7 +13,13 @@ BASE_URL = "https://bb.ringingworld.co.uk/export.php?pagesize={}&ringer={}"
 SAINT_REGEX = re.compile("St ([A-Za-z]+)|SS ([A-Za-z]+) and ([A-Za-z]+)|S ([A-Za-z]+)|Saint ([A-Za-z]+)|SS ([A-Za-z]+) & ([A-Za-z]+)")
 
 def get_project_root() -> Path:
-    return Path(__file__).parent.parent
+    return Path(__file__).parent.parent.parent
+
+# TODO: move somewhere more appropriate
+def get_ringer_name(ringer: Ringer | str) -> str:
+    if hasattr(ringer, "name"):
+        return ringer.name
+    return ringer
 
 # TODO: write tests
 def format_bellboard_url(name: str, page_size: int) -> str: # TODO: rename this function

@@ -4,15 +4,17 @@
 
 * Circling doesn't factor in bells being rehung or tuned or changed in anyway
 * It only includes performances on BellBoard
-* Some performances that couldn't be parsed might be excluded from analysis
+* Some performances that couldn't be parsed might be excluded from analysis e.g. Ringing Room performances.
 * Handbells basically don't work right now
 * Nothing is well-tested. This is currently just a fun side project.
 
 ## Running the app locally
 
-1. Install the dependencies into a Python 3.11 environment using `pip install -r requirements.txt`. Other versions might work but haven't been tested.
+1. Install the dependencies into a Python 3.11 environment using `pip install .`. Other versions might work but haven't been tested.
 
 2. Run `streamlit run src/main.py` to run the app.
+
+3. Tests can be run by running `pip install -e ."[test]"` to install test dependencies and then running `pytest`.
 
 ## Features to add
 

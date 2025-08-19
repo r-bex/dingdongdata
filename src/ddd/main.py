@@ -45,6 +45,7 @@ with st.expander("About this app"):
 
 # TODO: allow entry of multiple name variations
 st.session_state["primary_name"] = st.text_input("Enter your name as it appears on Bellboard: ")
+#st.session_state["primary_name"] = "Rebecca Davey"
 
 if st.session_state["primary_name"] and not all_performances:
     st.spinner(text="Loading all performances...", show_time=False)

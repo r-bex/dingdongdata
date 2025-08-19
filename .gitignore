@@ -2,7 +2,14 @@
 data/user/raw_data.txt
 data/user/data.json
 
+# Egg files
+*/**/DingDongData.egg-info
+
 # General junk
+build
+.vscode
 .DS_Store
+__pycache__
 */__pycache__
 */**/__pycache__
+

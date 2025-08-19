@@ -1,0 +1,30 @@
+[project]
+name = "DingDongData"
+version = "0.1.0"
+dependencies = [
+  "streamlit~=1.45.1",
+  "jupyter~=1.1.1",
+  "requests~=2.32.3",
+  "pydantic~=2.11.4",
+  "xmltodict~=0.14.2",
+  "streamlit-folium~=0.25.0",
+  "streamlit-extras~=0.7.1",
+]
+requires-python = ">=3.11"
+authors = [
+  {name = "Rebecca Davey", email = "notarealemail@example.com"},
+]
+maintainers = [
+  {name = "Rebecca Davey", email = "notarealemail@example.com"},
+]
+description = "An app for exploring BellBoard performances"
+readme = "README.md"
+
+[project.optional-dependencies]
+test = [
+  "pytest==8.4.1"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src/ddd"]
+testpaths = ["tests"]

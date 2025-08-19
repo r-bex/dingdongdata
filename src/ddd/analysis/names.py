@@ -1,3 +1,5 @@
+import streamlit as st
+
 from model.performance import Performance
 
 BRACKET_CHARS = [("[", "]"), ("(",")"), ("{", "}"), ("<", ">")]
