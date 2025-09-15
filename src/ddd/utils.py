@@ -1,10 +1,7 @@
 import logging
+import math
 from pathlib import Path
 import re
-
-import streamlit as st
-
-from ddd.model.ringers import Ringer
 
 logger = logging.getLogger()
 
@@ -12,14 +9,11 @@ BASE_URL = "https://bb.ringingworld.co.uk/export.php?pagesize={}&ringer={}"
 
 SAINT_REGEX = re.compile("St ([A-Za-z]+)|SS ([A-Za-z]+) and ([A-Za-z]+)|S ([A-Za-z]+)|Saint ([A-Za-z]+)|SS ([A-Za-z]+) & ([A-Za-z]+)")
 
+LBS_IN_CWT = 112
+LBS_IN_QUARTER = 28
+
 def get_project_root() -> Path:
     return Path(__file__).parent.parent.parent
-
-# TODO: move somewhere more appropriate
-def get_ringer_name(ringer: Ringer | str) -> str:
-    if hasattr(ringer, "name"):
-        return ringer.name
-    return ringer
 
 # TODO: write tests
 def format_bellboard_url(name: str, page_size: int) -> str: # TODO: rename this function
@@ -35,7 +29,7 @@ def format_bellboard_url(name: str, page_size: int) -> str: # TODO: rename this 
     name = name.replace(" ", "%20")
     return BASE_URL.format(page_size, name)
 
-def extract_saints(dedication: str) -> list[str]:
+def extract_saints_from_dedication(dedication: str) -> list[str]:
     """TODO: docstring"""
     # TODO: strip trailing commas
     saints = []
@@ -48,18 +42,58 @@ def extract_saints(dedication: str) -> list[str]:
         pass
     return saints
 
-def format_total_mins(mins: int, sig_figs: int = 3) -> str:
+def make_word_camelcase(word: str) -> str:
+    """TODO: string"""
+    return word[0].upper() + word[1:].lower()
+
+def word_is_valid(w: str) -> bool:
     """TODO: docstring"""
-    if mins < 60:
-        return f"{mins} minutes"
-    if mins < 24*60:
-        hours = round(mins/60, sig_figs)
-        return f"{hours} hours"
-    if mins < 7*24*60:
-        days = round(mins/(60*24), sig_figs)
-        return f"{days} days"
-    if mins < 52*7*24*60:
-        weeks = round(mins/(60*24*7), sig_figs)
-        return f"{weeks} weeks"
-    years = round(mins/(52*7*24*60), sig_figs)
-    return f"{years} years"
+    for char in w:
+        if char not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "-"]:
+            return False
+    return True
+
+def cwt_to_lbs(cwt_str: str) -> int | None:
+    """Convert a bell weight in x-y-z format to a weight in lbs"""
+    # TODO: put try catch on this
+    # only keep words that only contain numbers and -
+    if " " in cwt_str:
+        words = cwt_str.split(" ")
+        valid_words = [w for w in words if word_is_valid(w)]
+        if len(valid_words) == 0:
+            return None
+        cwt_str = valid_words[0]
+
+    if "-" in cwt_str:
+        (cwt, quarters, lbs) = [int(x) for x in cwt_str.split("-")]
+        total_lbs = 0
+        total_lbs += cwt * LBS_IN_CWT
+        total_lbs += quarters * LBS_IN_QUARTER
+        total_lbs += lbs
+        return total_lbs
+    else:
+        return LBS_IN_CWT * int(cwt_str)
+
+def lbs_to_cwt(lbs: float) -> str:
+    """TODO: docstring"""
+    as_int = round(lbs)
+
+    whole_cwt = math.floor(as_int / LBS_IN_CWT)
+    as_int = as_int - (whole_cwt * LBS_IN_CWT)
+
+    whole_quarters = math.floor(as_int / LBS_IN_QUARTER)
+    remainder_lbs = as_int - (whole_quarters * LBS_IN_QUARTER)
+
+    return f"{whole_cwt}-{whole_quarters}-{remainder_lbs}"
+
+
+# TODO: move to dove?
+def extract_true_bell_no(bell_no_str: str) -> str | None:
+    """TODO: docstring"""
+    if "c" in bell_no_str:
+        if bell_no_str.startswith("c"):
+            return None
+        else:
+            return bell_no_str.split("c")[0]
+    else:
+        return bell_no_str

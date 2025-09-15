@@ -2,19 +2,6 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
-# RINGING ROOM # TODO: remove
-# "place": {
-#     "place-name": {
-#         "@type": "place",
-#         "#text": "Ringing Room, UK"
-#     },
-#     "ring": {
-#         "@type": "tower"
-#     }
-# },
-
-
 class PlaceDetail(BaseModel):
     """TODO: docstring"""
     place_detail_type: Optional[str] = Field(alias="@type") # TODO: could be enum
@@ -36,16 +23,25 @@ class Place(BaseModel):
     # TODO: write tests
     def extract_town_name(self) -> str:
         """TODO: docstring"""
-        matching_detail = [d for d in self.place_details if d.place_detail_type == "place"]
-        if matching_detail:
-            return matching_detail[0].place_detail_text
+        if isinstance(self.place_details, list):
+            matching_detail = [d for d in self.place_details if d.place_detail_type == "place"]
+            if matching_detail:
+                return matching_detail[0].place_detail_text
+        else:
+            # just a single place detail
+            if self.place_details.place_detail_type == "place" and "ringing room" not in self.place_details.place_detail_text.lower():
+                return self.place_details.place_detail_text
         return None
     
     def extract_county_name(self) -> str:
         """TODO: docstring"""
-        matching_detail = [d for d in self.place_details if d.place_detail_type == "county"]
-        if matching_detail:
-            return matching_detail[0].place_detail_text
+        if isinstance(self.place_details, list):
+            matching_detail = [d for d in self.place_details if d.place_detail_type == "county"]
+            if matching_detail:
+                return matching_detail[0].place_detail_text
+        else:
+            if self.place_details.place_detail_type == "county":
+                return self.place_details.place_detail_text
         return None
 
     # TODO: write tests

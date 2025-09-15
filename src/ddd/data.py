@@ -71,15 +71,15 @@ def convert_text_to_json() -> None:
 
 
 @st.cache_data
-def load_data(from_file: bool, name: str = None) -> list[Performance]:
+def load_data(filename: str = None, name: str = None) -> list[Performance]:
     """
     Fetch up to 10k records from BellBoard
-    :param from_file: if True, don't load new data and reload data.json
+    :param filename: if provided, load performances from a file instead of BellBoard API.
     :param name: the name to use in the BellBoard search API call
     :return: a list of Performance objects
     """
-    if from_file:
-        return load_performances_from_json(file="data.json")
+    if filename:
+        return load_performances_from_json(file=filename)
     else:
         if not name:
             raise ValueError("Please provide a name to load data for")

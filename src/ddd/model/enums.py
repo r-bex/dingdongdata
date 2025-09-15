@@ -1,21 +1,21 @@
 from enum import StrEnum
 
 class RingType(StrEnum):
-    """TODO: docstring"""
+    """Used to filter performances."""
     TOWER = "tower"
     HAND = "hand"
     BOTH = "both"
     OTHER = "other"
 
 class PerformanceType(StrEnum):
-    """TODO: docstring"""
+    """Used to filter performances."""
     PEAL = "peal"
     QP = "qp"
     BOTH = "both"
     OTHER = "other"
 
 class Stage(StrEnum):
-    """TODO: docstring"""
+    """The stage of the ringing."""
     SINGLES = "Singles"
     MINIMUS = "Minimus"
     DOUBLES = "Doubles"
@@ -28,10 +28,10 @@ class Stage(StrEnum):
     MAXIMUS = "Maximus"
     FOURTEEN = "Fourteen"
     SIXTEEN = "Sixteen"
-    UNKNOWN = "unknown"
+    UNKNOWN = "Unknown"
 
-    def get_ordinal(self) -> int:
-        """TODO: docstring"""
+    def get_ordinal(self) -> int | str:
+        """Associate a stage with an ordinal to enable stage ordering."""
         stage_ordinals = {
             Stage.SINGLES: 3,
             Stage.MINIMUS: 4,
@@ -45,6 +45,6 @@ class Stage(StrEnum):
             Stage.MAXIMUS: 12,
             Stage.FOURTEEN: 14,
             Stage.SIXTEEN: 16,
-            Stage.UNKNOWN: None
+            Stage.UNKNOWN: "Unknown"
         }
         return stage_ordinals[self]

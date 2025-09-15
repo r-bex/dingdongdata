@@ -1,8 +1,11 @@
 import streamlit as st
 
+from analysis.dove import load_tower_data, load_modelled_towers
 from analysis.misc import advanced_filter, basic_filter, generate_pandas_dataframe
 from analysis.names import find_similar_names
+from analysis.weights import assign_performance_weights
 from data import load_data
+from model.performance import Performance
 from model.performance_set import Performances
 from output.bingo import show_bingo
 from output.leaderboards import show_leaderboards
@@ -12,7 +15,7 @@ from output.stats import show_headline_stats
 from output.trends import show_trends
 
 basic_subset = None
-all_performances = []
+all_entries = []
 subset_performances = []
 
 def generate_new_bingo_vars() -> dict:
@@ -20,6 +23,21 @@ def generate_new_bingo_vars() -> dict:
         "letter_clicked": None,
         "possible": [],
         "collected": []
+    }
+
+# TODO: move this somewhere else
+def get_toggle_labels(performances: list[Performance]) -> dict[str, str]:
+    """TODO: docstring"""
+    num_tower = len([p for p in performances if p.place.ring_details.ring_type == "tower"])
+    num_hand = len([p for p in performances if p.place.ring_details.ring_type == "hand"])
+    num_peal = len([p for p in performances if p.determine_performance_type() == "peal"])
+    num_qp = len([p for p in performances if p.determine_performance_type() == "qp"])
+
+    return {
+        "all_ring_types": [f"tower ({num_tower})", f"hand ({num_hand})", f"both ({num_tower + num_hand})"],
+        "default_ring_type": f"both ({num_tower + num_hand})",
+        "all_perf_types": [f"qp ({num_qp})", f"peal ({num_peal})", f"both ({num_qp + num_peal})"],
+        "default_perf_type": f"both ({num_qp + num_peal})"
     }
 
 # initialise filter vars
@@ -43,42 +61,62 @@ st.title(":bell: DingDongData")
 with st.expander("About this app"):
     st.write("This is a work in progress with lots of limitations and caveats.")
 
+# Load tower data for later? TODO: move this later?
+# raw_tower_df = load_tower_data()
+# modelled_towers = load_modelled_towers(raw_tower_df)
+
 # TODO: allow entry of multiple name variations
 st.session_state["primary_name"] = st.text_input("Enter your name as it appears on Bellboard: ")
-#st.session_state["primary_name"] = "Rebecca Davey"
 
-if st.session_state["primary_name"] and not all_performances:
+if st.session_state["primary_name"] and not all_entries:
     st.spinner(text="Loading all performances...", show_time=False)
-    all_performances = load_data(from_file=False, name=st.session_state["primary_name"])
+    all_entries = load_data(filename=None, name=st.session_state["primary_name"])
 
-if st.session_state["primary_name"] and len(all_performances):
-    st.text(f"Loaded {len(all_performances)} performances from BellBoard.")
+if st.session_state["primary_name"] and len(all_entries):
+    all_performances = [p for p in all_entries if p.determine_performance_type() in ["qp", "peal"] and p.place.ring_details.ring_type in ["tower", "hand"]]
+    st.text(f"Loaded {len(all_entries)} entries from BellBoard, filtered down to {len(all_performances)} performances.")
+
+    # BellBoard entries that will not be shown
+    excluded = [p for p in all_entries if p not in all_performances]
+    with st.expander("Excluded BellBoard entries"):
+        st.table(generate_pandas_dataframe(excluded))
 
     # Identify synonyms
     candidate_synonyms = find_similar_names(all_performances, st.session_state["primary_name"])
+    selected_synonyms = []
     if len(candidate_synonyms):
         st.subheader("Name deduplication")
-        selected_synonyms = st.pills("Are any of these you?", options=candidate_synonyms, selection_mode="multi")
-        st.session_state["accepted_names"] = [st.session_state["primary_name"]] + selected_synonyms
+        selected_synonyms = st.pills(
+            "Are any of these you?",
+            options=candidate_synonyms,
+            default=candidate_synonyms,
+            selection_mode="multi"
+        )
+    st.session_state["accepted_names"] = [st.session_state["primary_name"]] + selected_synonyms
+    
+
+    # Match locations
+    #assign_performance_weights(all_performances, modelled_towers, st.session_state["accepted_names"])
 
     ## -- Basic filters --
 
     st.subheader("Filter performances")
+    toggle_labels = get_toggle_labels(all_performances)
 
     # Filter - tower bells vs handbells
     st.session_state["ring_type"] = st.segmented_control(
         label="Select performance type",
-        options=["tower", "hand", "both"],
+        options=toggle_labels["all_ring_types"],
         selection_mode="single",
-        default="tower"
+        default=toggle_labels["default_ring_type"]
     )
 
     # Filter - peal vs QP
     st.session_state["performance_type"] = st.segmented_control(
         label="Select other performance type",
-        options=["qp", "peal", "both"],
+        options=toggle_labels["all_perf_types"],
         selection_mode="single",
-        default="qp"
+        default=toggle_labels["default_perf_type"]
     )
 
     # Filter - only show performances as conductor
@@ -86,6 +124,9 @@ if st.session_state["primary_name"] and len(all_performances):
 
     basic_subset = basic_filter(all_performances)
     basic_subset_obj = Performances(performance=basic_subset)
+
+    # Remove Ringing Room performances
+    basic_subset_obj.remove_ringing_room_performances()
 
 # TODO: fix this.
 if basic_subset and len(basic_subset) == 0:
@@ -132,6 +173,7 @@ if subset_performances and len(subset_performances):
     # Side bar for navigating between sections
     st.sidebar.markdown('''
         # Sections
+        - [Settings](#name-deduplication)
         - [Vital statistics](#vital-statistics)
         - [Trends](#trends)
         - [Performance map](#performance-map)
@@ -141,7 +183,7 @@ if subset_performances and len(subset_performances):
         ''',
         unsafe_allow_html=True
     )
-        
+
     # View all performances (collapsed)
     with st.expander("View all matching performances"):
         st.table(generate_pandas_dataframe(subset_performances))

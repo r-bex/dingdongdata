@@ -3,7 +3,7 @@ import streamlit as st
 
 from analysis.dove import get_all_saints, get_all_counties
 from model.performance import Performance
-from utils import extract_saints
+from utils import extract_saints_from_dedication
 
 # TODO: why isn't Eanswythe in all saints?
 
@@ -16,7 +16,7 @@ def saint_bingo(performances: list[Performance]) -> None:
     user_dedications = list(set([p.place.get_specific_detail_type("dedication") for p in performances]))
     user_saints = []
     for dedication in user_dedications:
-        extracted_saints = extract_saints(dedication)
+        extracted_saints = extract_saints_from_dedication(dedication)
         for extracted_saint in extracted_saints:
             if extracted_saint not in user_saints:
                 user_saints.append(extracted_saint)

@@ -1,13 +1,14 @@
 from collections import defaultdict
 import logging
+import math
 import pandas as pd
-import streamlit as st
-import random
 import folium
 import branca
+import streamlit as st
 
 from model.performance import Performance
-from utils import extract_saints, get_project_root
+from model.tower import Tower, Bell, Coordinates
+from utils import extract_saints_from_dedication, extract_true_bell_no, get_project_root
 
 logger = logging.getLogger()
 
@@ -35,6 +36,7 @@ PROJECT_ROOT = get_project_root()
 MERGED_DATA_PATH = f"{PROJECT_ROOT}/data/dove/dove_merged.csv"
 
 # TODO: write tests
+@st.cache_data
 def load_tower_data() -> pd.DataFrame:
     """
     Fetch the merged tower & bell data from Doves
@@ -42,6 +44,47 @@ def load_tower_data() -> pd.DataFrame:
     """
     df = pd.read_csv(MERGED_DATA_PATH)
     return df
+
+# TODO: write tests
+@st.cache_data
+def load_modelled_towers(df: pd.DataFrame) -> list[Tower]:
+    """Load modelled towers from merged Dove df."""
+    # Replace empty fields with None, e.g. unknown bell weight, miniring dedication
+    df = df.replace({float('nan'): None})
+
+    towers = []
+    ring_ids = list(df["RingID"].drop_duplicates())
+    for ring_id in ring_ids:
+        sub_df = df[df.RingID == ring_id]
+        first_row = sub_df.iloc[0]
+
+        ring_size = str(first_row.RingSize)
+        bells = [
+            Bell(true_number=extract_true_bell_no(r.BellRole), weight_lbs=r.WeightLbs)
+            for r in sub_df.itertuples() if extract_true_bell_no(r.BellRole)
+        ]
+        tenor_weight = [b for b in bells if str(b.true_number) == ring_size][0].weight_lbs
+
+        if first_row.Lat:
+            coordinates = Coordinates(latitude=first_row.Lat, longitude=first_row.Long)
+        else:
+            coordinates = None
+
+        towers.append(
+            Tower(
+                dove_tower_id=str(first_row.TowerID),
+                dove_ring_id=str(ring_id),
+                place=first_row.Place,
+                county=first_row.County,
+                dedication=first_row.Dedicn,
+                location=coordinates,
+                bells=bells,
+                tenor_weight_lbs=tenor_weight,
+                num_bells=ring_size
+            )
+        )
+    
+    return towers
 
 # TODO: write tests
 def get_performance_map(performances: list[Performance]) -> folium.Map:
@@ -72,28 +115,32 @@ def get_performance_map(performances: list[Performance]) -> folium.Map:
     avg_lng = merged_df["Long"].mean()
 
     perf_counts = list(merged_df["PerformanceCount"])
-    total_perf_count = sum(perf_counts)
 
     #Initialise map
-    m = folium.Map(location=[avg_lat, avg_lng], zoom_start=6)
+    m = folium.Map(location=[avg_lat, avg_lng])
 
     # Create colourmap
     colormap = branca.colormap.LinearColormap(
-        colors=["blue", "red"],
-        index=[0, max(perf_counts)/total_perf_count]
+        #colors=["blue", "red"],
+        colors=["#0033FC", "#FC0054"],
+        index=[1, math.log(max(perf_counts))]
     )
-    # colormap.caption = 'Performance count'
-    # colormap.add_to(m)
 
-    for row in merged_df.itertuples():
+    for row in merged_df.sort_values(by="PerformanceCount", axis=0, ascending=True).itertuples():
         folium.CircleMarker(
             [row.Lat, row.Long],
-            color=colormap(row.PerformanceCount/total_perf_count),
-            fillColor=colormap(row.PerformanceCount/total_perf_count),
+            color=colormap(math.log(row.PerformanceCount)),
+            fillColor=colormap(math.log(row.PerformanceCount)),
             opacity=0.8,
-            radius=5,
+            radius=7,
             tooltip=f"{row.Place} ({row.Dedicn})\n{row.PerformanceCount} performances"
         ).add_to(m)
+
+    # Calculate bounds to show all features in initial view
+    sw = merged_df[['Lat', 'Long']].min().values.tolist()
+    ne = merged_df[['Lat', 'Long']].max().values.tolist()
+    m.fit_bounds([sw, ne]) 
+
     return m
 
 # TODO: write tests
@@ -128,7 +175,7 @@ def get_all_saints() -> list[str]:
     dedications = list(df["Dedicn"].drop_duplicates())
     saints = []
     for dedication in dedications:
-        for saint in extract_saints(dedication):
+        for saint in extract_saints_from_dedication(dedication):
             if saint not in saints:
                 saints.append(saint)
     return saints
