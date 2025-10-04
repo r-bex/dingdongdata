@@ -1,6 +1,7 @@
 [project]
 name = "DingDongData"
 version = "0.1.0"
+package-mode = false
 dependencies = [
   "streamlit~=1.45.1",
   "jupyter~=1.1.1",
